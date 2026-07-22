@@ -271,7 +271,12 @@ async function api(path, options = {}) {
   const token = localStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(path, { ...options, headers });
+  // stringify body when an object is provided (fix invalid JSON sent from client)
+  const opts = { ...options };
+  if (opts.body && typeof opts.body === 'object') {
+    opts.body = JSON.stringify(opts.body);
+  }
+  const response = await fetch(path, { ...opts, headers });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Request failed');
   return data;
