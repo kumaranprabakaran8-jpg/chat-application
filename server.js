@@ -145,6 +145,24 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Server error' });
 });
 
+// Local-only guest endpoint so the UI's "Continue as Guest" works when running locally
+if (!isVercel) {
+  app.post('/api/guest', (req, res) => {
+    const email = `guest-${Date.now()}@local.dev`;
+    const password = Math.random().toString(36).slice(-10);
+    const hashed = bcrypt.hashSync(password, 10);
+    try {
+      const stmt = db.prepare('INSERT INTO users (email, password, provider) VALUES (?, ?, ?)');
+      const result = stmt.run(email, hashed, 'guest');
+      const token = jwt.sign({ id: result.lastInsertRowid, email }, JWT_SECRET, { expiresIn: '7d' });
+      return res.json({ token, user: { id: result.lastInsertRowid, email, provider: 'guest' } });
+    } catch (e) {
+      console.error('local guest create failed', e);
+      return res.status(500).json({ error: 'Guest create failed' });
+    }
+  });
+}
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
