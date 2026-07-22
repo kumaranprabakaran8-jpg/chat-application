@@ -160,7 +160,7 @@ function bindAuthEvents() {
     await init();
   };
   document.getElementById('guest').onclick = async () => {
-    const data = await api('/api/auth/guest', { method: 'POST' });
+    const data = await api('/api/guest', { method: 'POST' });
     localStorage.setItem('token', data.token);
     state.user = data.user;
     await init();
