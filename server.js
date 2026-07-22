@@ -94,13 +94,7 @@ app.post('/api/auth/login', [body('email').isEmail(), body('password').isLength(
   res.json({ token, user: { id: user.id, email: user.email, provider: user.provider } });
 });
 
-app.post('/api/auth/guest', (req, res) => {
-  // Temporary workaround for serverless: return a short-lived JWT without DB write
-  console.log('[auth:guest] issuing temporary guest token (no DB write)');
-  const email = `guest-${Date.now()}@local.dev`;
-  const token = jwt.sign({ id: null, email, guest: true }, JWT_SECRET, { expiresIn: '1h' });
-  res.json({ token, user: { id: null, email, provider: 'guest' }, note: 'temporary: no DB write' });
-});
+// NOTE: `/api/auth/guest` removed; use standalone `/api/guest` serverless function instead.
 
 app.get('/api/auth/me', authenticate, (req, res) => {
   const user = db.prepare('SELECT id, email, provider FROM users WHERE id = ?').get(req.user.id);
