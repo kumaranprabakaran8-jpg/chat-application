@@ -14,7 +14,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-const db = new DatabaseSync(path.join(__dirname, 'chat.db'));
+const isVercel = !!process.env.VERCEL;
+const dbPath = isVercel ? ':memory:' : path.join(__dirname, 'chat.db');
+const db = new DatabaseSync(dbPath);
 
 app.use(helmet());
 app.use(cors({ origin: true, credentials: true }));
@@ -142,6 +144,13 @@ app.put('/api/chats/:id', authenticate, (req, res) => {
 app.delete('/api/chats/:id', authenticate, (req, res) => {
   db.prepare('DELETE FROM chats WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
   res.json({ ok: true });
+});
+
+// Error handler: return JSON instead of HTML on server errors
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: err.message || 'Server error' });
 });
 
 app.get('*', (req, res) => {
