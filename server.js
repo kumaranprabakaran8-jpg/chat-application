@@ -95,26 +95,11 @@ app.post('/api/auth/login', [body('email').isEmail(), body('password').isLength(
 });
 
 app.post('/api/auth/guest', (req, res) => {
-  console.log('[auth:guest] start');
+  // Temporary workaround for serverless: return a short-lived JWT without DB write
+  console.log('[auth:guest] issuing temporary guest token (no DB write)');
   const email = `guest-${Date.now()}@local.dev`;
-  const password = Math.random().toString(36).slice(-10);
-  bcrypt.hash(password, 10, (err, hashed) => {
-    if (err) {
-      console.error('[auth:guest] hash error', err);
-      return res.status(500).json({ error: 'Hashing failed' });
-    }
-    console.log('[auth:guest] hashed');
-    try {
-      const stmt = db.prepare('INSERT INTO users (email, password, provider) VALUES (?, ?, ?)');
-      const result = stmt.run(email, hashed, 'guest');
-      console.log('[auth:guest] inserted', result.lastInsertRowid);
-      const token = jwt.sign({ id: result.lastInsertRowid, email }, JWT_SECRET, { expiresIn: '7d' });
-      res.json({ token, user: { id: result.lastInsertRowid, email, provider: 'guest' } });
-    } catch (e) {
-      console.error('[auth:guest] db error', e);
-      res.status(500).json({ error: 'Registration failed' });
-    }
-  });
+  const token = jwt.sign({ id: null, email, guest: true }, JWT_SECRET, { expiresIn: '1h' });
+  res.json({ token, user: { id: null, email, provider: 'guest' }, note: 'temporary: no DB write' });
 });
 
 app.get('/api/auth/me', authenticate, (req, res) => {
